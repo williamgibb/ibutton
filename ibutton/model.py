@@ -27,9 +27,13 @@ log = logging.getLogger(__name__)
 class IButtonModel(s_module.CoreModule):
 
     def postCoreModule(self):
-        pass
-        # XXX Add node:prop:set handler to identify :temp values being
-        # smashed so we know if something got whacky
+        def warn(evt):
+            oldv, newv = evt[1].get('oldv'), evt[1].get('newv')
+            prop = evt[1].get('prop')
+            if oldv:
+                log.warning('Smashing %s with %s vs %s', prop, newv, oldv)
+
+        self.core.on('node:prop:set', warn, form='idata')
 
     @staticmethod
     def getBaseModels():
@@ -46,7 +50,7 @@ class IButtonModel(s_module.CoreModule):
                 ('idata', {}, (
                     ('rtime', {'ptype': 'time', 'req': 1, 'ro': 1, 'doc': 'Time of the databpoint'}),
                     ('button', {'ptype': 'ibutton'}),
-                    ('temp', {'ptype': 'int', 'doc': 'Temperature (in decikelvin)'}),
+                    ('temp', {'ptype': 'int', 'doc': 'Temperature (in deciCelsius)'}),
 
                 )),
                 ('ibutton', {}, (

@@ -17,7 +17,11 @@ import argparse
 import datetime
 
 # Third Party Code
+import synapse.cortex as s_cortex
+import synapse.lib.tufo as s_tufo
+
 # Custom Code
+import ibutton.button as button
 
 
 log = logging.getLogger(__name__)
@@ -27,6 +31,8 @@ TIME_FORMAT = '%Y/%m/%d %H:%M:%S'
 SYN_TIME_FORMAT = '%Y%m%d%H%M%S'
 BLOCK = 'block'
 TMNT = 'tmnt'
+SERIAL = 'serial'
+
 LOCATION_KEYS = [BLOCK, TMNT]
 
 def parse_order_csv(fp: str) -> dict:
@@ -41,7 +47,7 @@ def parse_ibutton_csv(fp: str, order_d: dict):
     with open(fp, 'rb') as f:
         ibutton_found = False
         i = 0
-        ibutton = ButtonData()
+        ibutton = button.ButtonData()
         ibutton.metadata[BLOCK] = order_d[i].get(BLOCK)
         ibutton.metadata[TMNT] = order_d[i].get(TMNT)
         lines = f.readlines()
@@ -52,7 +58,7 @@ def parse_ibutton_csv(fp: str, order_d: dict):
                 if ibutton_found:
                     yield ibutton
                     i = i + 1
-                    ibutton = ButtonData()
+                    ibutton = button.ButtonData()
                     ibutton.metadata[BLOCK] = order_d[i].get(BLOCK)
                     ibutton.metadata[TMNT] = order_d[i].get(TMNT)
                     ibutton_found = False
@@ -79,12 +85,11 @@ def parse_ibutton_csv(fp: str, order_d: dict):
                 except ValueError as e:
                     ibutton.metadata[key] = value
                 else:
-                    value = float(value)
+                    value = int(10*float(value))  # Convert units from celsius to decikelvins
                     ibutton.append((key, value))
 
             else:
                 continue
-                # print(key, value)
 
 
 # noinspection PyMissingOrEmptyDocstring
@@ -95,11 +100,28 @@ def main(options):  # pragma: no cover
     from pprint import pprint
 
     order_d = parse_order_csv(options.order)
-    pprint(order_d)
-    for button in parse_ibutton_csv(options.input, order_d):
-        pprint((button, len(button.rows), button.metadata))
-        pass
-
+    with s_cortex.openurl(options.core) as core:
+        core.setConfOpts({'modules': (('ibutton.model.IButtonModel', {}),),
+                          'caching': 1,
+                          'cache:maxsize': 25000})
+        with core.getCoreXact() as xact:
+            for button in parse_ibutton_csv(options.input, order_d):
+                # Make ibutton node
+                d = {SERIAL: button.metadata.get('Logger serial number'),
+                     BLOCK: button.metadata.get(BLOCK),
+                     TMNT: button.metadata.get(TMNT),
+                     }
+                bnode = core.formTufoByProp('ibutton', d)
+                _, pprop = s_tufo.ndef(bnode)
+                for k, v in button.rows:
+                    # XXX TODO - timezone correction???
+                    rtime = k.strftime(SYN_TIME_FORMAT)
+                    d = {'button': pprop,
+                         'rtime': rtime}
+                    node = core.formTufoByProp('idata', d, temp=v)
+                    if not node[1].get('.new'):
+                        print('node existed!')
+                        print(node)
     sys.exit(0)
 
 
@@ -111,6 +133,8 @@ def makeargpaser():  # pragma: no cover
                         help='Input file to process')
     parser.add_argument('-o', '--order_csv', dest='order', required=True, type=str,
                         action='store', help='Order CSV file')
+    parser.add_argument('-c', '--core', dest='core', type=str, default='ram://',
+                        action='store', help='Cortex to store data in')
     parser.add_argument('-v', '--verbose', dest='verbose', default=False, action='store_true',
                         help='Enable verbose output')
     return parser
