@@ -127,8 +127,9 @@ def main(options):  # pragma: no cover
                              'rtime': rtime}
                         node = core.formTufoByProp('idata', d, temp=v)
                         if not node[1].get('.new'):
-                            print('node existed!')
-                            print(node)
+                            pass
+                            # print('node existed!')
+                            # print(node)
     sys.exit(0)
 
 
