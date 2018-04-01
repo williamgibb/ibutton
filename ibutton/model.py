@@ -36,18 +36,24 @@ class IButtonModel(s_module.CoreModule):
 
         modl = {
             'types': (
-                ('datapoint', {'subof': 'comp', 'fields': 'row=int,block=int,rtime=time'}),
-                ('ibutton', {'subof': 'str', 'lower': 1, 'doc': 'A unique ibutton'})
+                ('ibutton', {'subof': 'comp', 'fields': 'serial=str:lwr,block=int,tmnt=str:lwr',
+                             'doc': 'A unique ibutton'}),
+                ('idata', {'subof': 'comp', 'fields': 'button=ibutton,rtime=time',
+                           'doc': 'A datapoint for an ibutton in time'}),
             ),
 
             'forms': (
-                ('datapoint', {}, (
-                    ('row', {'ptype': 'int', 'req': 1, 'ro': 1, 'doc': 'Row location of the databpoint'}),
-                    ('block', {'ptype': 'int', 'req': 1, 'ro': 1, 'doc': 'Block location of the databpoint'}),
+                ('idata', {}, (
                     ('rtime', {'ptype': 'time', 'req': 1, 'ro': 1, 'doc': 'Time of the databpoint'}),
-                    ('temp', {'ptype': 'int', 'doc': 'Temparture (in decikelvin)'}),
-                    ('button', {'ptype': 'ibutton'})
+                    ('button', {'ptype': 'ibutton'}),
+                    ('temp', {'ptype': 'int', 'doc': 'Temperature (in decikelvin)'}),
+
                 )),
+                ('ibutton', {}, (
+                    ('serial', {'ptype': 'str:lwr', 'ro': 1, 'req': 1, 'doc': 'ibutton serial number'}),
+                    ('block', {'ptype': 'int', 'ro': 1, 'req': 1, 'doc': 'ibutton block number'}),
+                    ('tmnt', {'ptype': 'str:lwr', 'ro': 1, 'req': 1, 'doc': 'trearment for the ibutton'}),
+                ))
             ),
 
         }
