@@ -8,23 +8,56 @@ Created on 4/1/18.
 
 """
 # Stdlib
-import argparse
-import json
-import logging
 import os
 import sys
+import logging
+import argparse
+import datetime
 
 # Third Party Code
-# Custom Code
+import synapse.cortex as s_cortex
 
+import synapse.lib.tufo as s_tufo
+
+# Custom Code
+import ibutton.button as button
+from ibutton.constants import *
 
 log = logging.getLogger(__name__)
 
+def analyze(core, fdir):
+    for inode in core.eval('ibutton'):
+        _, pprop = s_tufo.ndef(inode)
+        log.info('Collecting data for {}'.format(pprop))
+        ibutton = button.ButtonData()
+        props = s_tufo.props(inode)
+        ibutton.metadata[TMNT] = props.get(TMNT)
+        ibutton.metadata[BLOCK] = props.get(BLOCK)
+        for node in core.eval('idata:button=%s' % pprop):
+            props = s_tufo.props(node)
+            tick = props.get('rtime')
+            # Taken from synapse.lib.time
+            dt = datetime.datetime(1970, 1, 1) + datetime.timedelta(milliseconds=tick)
+            # from dC (int) to C (float)
+            v = float(props.get('temp')) / 10
+            ibutton.append((dt, v))
+        ibutton.analyze_button()
+        ibutton.write_computed_data_to_files(fdir)
 
 # noinspection PyMissingOrEmptyDocstring
 def main(options):  # pragma: no cover
     if not options.verbose:
         logging.disable(logging.DEBUG)
+
+    if not os.path.exists(options.output):
+        os.makedirs(options.output)
+
+    with s_cortex.openurl(options.core) as core:
+        core.setConfOpts({'modules': (('ibutton.model.IButtonModel', {}),),
+                          'caching': 1,
+                          'cache:maxsize': 25000})
+        with core.getCoreXact() as xact:
+            analyze(core, options.output)
 
     sys.exit(0)
 
@@ -33,8 +66,10 @@ def main(options):  # pragma: no cover
 def makeargpaser():  # pragma: no cover
     # XXX Fill in description
     parser = argparse.ArgumentParser(description="Description.")
-    parser.add_argument('-i', '--input', dest='input', required=True, type=str, action='store',
-                        help='Input file to process')
+    parser.add_argument('-o', '--output', dest='output', required=True, type=str, action='store',
+                        help='Directory to write data too')
+    parser.add_argument('-c', '--core', dest='core', type=str, required=True,
+                        action='store', help='Cortex with data in it')
     parser.add_argument('-v', '--verbose', dest='verbose', default=False, action='store_true',
                         help='Enable verbose output')
     return parser
