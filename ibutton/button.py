@@ -26,8 +26,10 @@ class ButtonData(object):
         self.metadata = {}
 
     def check_integrity(self):
-        if len(self.rows) != int(self.metadata.get('Total device samples')):
-            raise ValueError('Missing samples!')
+        rlen = len(self.rows)
+        elen = int(self.metadata.get('Total device samples'))
+        if rlen != elen:
+            raise ValueError('Missing samples!, expected {} got {}'.format(rlen, elen))
 
     def append(self, row):
         self.rows.append(row)

@@ -105,23 +105,30 @@ def main(options):  # pragma: no cover
                           'caching': 1,
                           'cache:maxsize': 25000})
         with core.getCoreXact() as xact:
-            for button in parse_ibutton_csv(options.input, order_d):
-                # Make ibutton node
-                d = {SERIAL: button.metadata.get('Logger serial number'),
-                     BLOCK: button.metadata.get(BLOCK),
-                     TMNT: button.metadata.get(TMNT),
-                     }
-                bnode = core.formTufoByProp('ibutton', d)
-                _, pprop = s_tufo.ndef(bnode)
-                for k, v in button.rows:
-                    # XXX TODO - timezone correction???
-                    rtime = k.strftime(SYN_TIME_FORMAT)
-                    d = {'button': pprop,
-                         'rtime': rtime}
-                    node = core.formTufoByProp('idata', d, temp=v)
-                    if not node[1].get('.new'):
-                        print('node existed!')
-                        print(node)
+            fps = [options.input]
+            if os.path.isdir(options.input):
+                fps = [os.path.join(options.input, fn) for fn in os.listdir(options.input)]
+            for fp in fps:
+                log.info('Processing %s', fp)
+                for i, button in enumerate(parse_ibutton_csv(fp, order_d)):
+                    log.debug('Button # %s', i)
+                    button.check_integrity()
+                    # Make ibutton node
+                    d = {SERIAL: button.metadata.get('Logger serial number'),
+                         BLOCK: button.metadata.get(BLOCK),
+                         TMNT: button.metadata.get(TMNT),
+                         }
+                    bnode = core.formTufoByProp('ibutton', d)
+                    _, pprop = s_tufo.ndef(bnode)
+                    for k, v in button.rows:
+                        # XXX TODO - timezone correction???
+                        rtime = k.strftime(SYN_TIME_FORMAT)
+                        d = {'button': pprop,
+                             'rtime': rtime}
+                        node = core.formTufoByProp('idata', d, temp=v)
+                        if not node[1].get('.new'):
+                            print('node existed!')
+                            print(node)
     sys.exit(0)
 
 
