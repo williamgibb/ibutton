@@ -22,18 +22,12 @@ import synapse.lib.tufo as s_tufo
 
 # Custom Code
 import ibutton.button as button
+from ibutton.constants import *
 
 
 log = logging.getLogger(__name__)
 
 # 2015/12/22 00:01:00
-TIME_FORMAT = '%Y/%m/%d %H:%M:%S'
-SYN_TIME_FORMAT = '%Y%m%d%H%M%S'
-BLOCK = 'block'
-TMNT = 'tmnt'
-SERIAL = 'serial'
-
-LOCATION_KEYS = [BLOCK, TMNT]
 
 def parse_order_csv(fp: str) -> dict:
     ret = {}

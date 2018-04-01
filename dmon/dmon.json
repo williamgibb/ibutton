@@ -1,0 +1,35 @@
+{
+  "ctors": [
+    [
+      "core",
+      "ctor://synapse.cortex.openurl(url)",
+      {"config": "core"}
+    ]
+  ],
+  "configs": {
+    "core": {
+      "caching": 1,
+      "cache:maxsize": 20000,
+      "modules": [
+        [
+          "ibutton.model.IButtonModel",
+          {}
+        ]
+      ],
+      "storm:query:log:en": 1,
+      "storm:query:log:level": 20
+    }
+  },
+  "listen": [
+    "tcp://127.0.0.1:45000"
+  ],
+  "share": [
+    [
+      "core",
+      {}
+    ]
+  ],
+  "vars": {
+    "url": "sqlite:///./data.db"
+  }
+}
