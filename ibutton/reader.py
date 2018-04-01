@@ -114,6 +114,8 @@ def main(options):  # pragma: no cover
                          }
                     bnode = core.formTufoByProp('ibutton', d)
                     _, pprop = s_tufo.ndef(bnode)
+                    if bnode[1].get('ibutton:serial') == "":
+                        log.warning('Missing serial for ibutton!')
                     for k, v in button.rows:
                         # XXX TODO - timezone correction???
                         rtime = k.strftime(SYN_TIME_FORMAT)
