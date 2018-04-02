@@ -9,6 +9,7 @@ Created on 4/1/18.
 """
 # Stdlib
 import os
+import csv
 import sys
 import logging
 import argparse
@@ -26,6 +27,7 @@ from ibutton.constants import *
 log = logging.getLogger(__name__)
 
 def analyze(core, fdir):
+    d = {}
     for inode in core.eval('ibutton'):
         _, pprop = s_tufo.ndef(inode)
         log.info('Collecting data for {}'.format(pprop))
@@ -41,8 +43,29 @@ def analyze(core, fdir):
             # from dC (int) to C (float)
             v = float(props.get('temp')) / 10
             ibutton.append((dt, v))
+        d[pprop] = ibutton
+
+    summer_rows = []
+    for pprop, ibutton in d.items():
+        log.info('Analyzing data for {}'.format(pprop))
         ibutton.analyze_button()
         ibutton.write_computed_data_to_files(fdir)
+        for k, v in ibutton.summer_gdd.items():
+            d = {'year': k,
+                 'gdd': v,
+                 TMNT: ibutton.metadata.get(TMNT),
+                 BLOCK: ibutton.metadata.get(BLOCK)}
+            summer_rows.append(d)
+
+    fn = 'aggregate_summer_gdd.csv'
+    fp = os.path.join(fdir, fn)
+    with open(fp, 'w') as f:
+        w = csv.DictWriter(f, [TMNT, BLOCK, 'year', 'gdd'])
+        w.writeheader()
+        for d in summer_rows:
+            w.writerow(d)
+    total_summer_gdd = sum([d.get('gdd') for d in summer_rows])
+    log.info('Total summer gdd rows: [%s] [%s]', total_summer_gdd, (total_summer_gdd/len(summer_rows)))
 
 # noinspection PyMissingOrEmptyDocstring
 def main(options):  # pragma: no cover

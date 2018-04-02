@@ -34,6 +34,9 @@ class ButtonData(object):
         self.daily_halfday_average = {}
         self.missing_half_days = set([])
         self.gdd = {}  # Year -> count
+        self.summer_gdd = {}
+        self.summer_start = datetime.datetime(year=2016, month=4, day=1)
+        self.summer_end = datetime.datetime(year=2016, month=10, day=1)
 
     def check_integrity(self):
         rlen = len(self.rows)
@@ -135,11 +138,17 @@ class ButtonData(object):
                 log.debug('Now computing gdd for [{}]'.format(current_year))
                 current_year = day.year
             avg_temp = (self.daily_minimums.get(day) + self.daily_maximums.get(day)) / 2
-            if avg_temp > 10:  # XXX What about >= ????
+            if avg_temp > 10:
                 if current_year in self.gdd:
                     self.gdd[current_year] = self.gdd[current_year] + 1
                 else:
                     self.gdd[current_year] = 1
+
+                if day > self.summer_start and day < self.summer_end:
+                    if current_year in self.summer_gdd:
+                        self.summer_gdd[current_year] = self.summer_gdd[current_year] + 1
+                    else:
+                        self.summer_gdd[current_year] = 1
 
     def write_computed_data_to_files(self, fdir=None):
         if not fdir:
@@ -210,4 +219,16 @@ class ButtonData(object):
                     TMNT: tmnt,
                     BLOCK: block
                 }
+                w.writerow(d)
+
+        fn = '{}_summer_gdd.csv'.format(fn_base)
+        fp = os.path.join(fdir, fn)
+        with open(fp, 'w') as f:
+            w = csv.DictWriter(f, [TMNT, BLOCK, 'year', 'gdd'])
+            w.writeheader()
+            for k, v in self.summer_gdd.items():
+                d = {'year': k,
+                     'gdd': v,
+                     TMNT: tmnt,
+                     BLOCK: block}
                 w.writerow(d)
